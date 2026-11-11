@@ -7,6 +7,10 @@ final class CursorMotion {
         Point position();
         Rectangle boundsAt(Point point);
         boolean move(Point point);
+
+        default int radiusInCoordinates() {
+            return RADIUS;
+        }
     }
 
     static final long IDLE = Duration.ofSeconds(59).toNanos();
@@ -88,13 +92,14 @@ final class CursorMotion {
     private void beginSpiral(long now, Point current, Rectangle bounds) {
         // Shift the spiral inwards near a screen edge. Each frame stays within
         // the monitor and within the requested distance of the original point.
-        int inset = Math.min(RADIUS, Math.min(bounds.width - 1, bounds.height - 1) / 2);
-        if (inset == 0) {
+        int maxRadius = pointer.radiusInCoordinates();
+        int inset = Math.min(maxRadius, Math.min(bounds.width - 1, bounds.height - 1) / 2);
+        if (inset <= 0) {
             return;
         }
-        int x = Math.clamp(current.x, bounds.x + inset, bounds.x + bounds.width - 1 - inset);
-        int y = Math.clamp(current.y, bounds.y + inset, bounds.y + bounds.height - 1 - inset);
-        double scale = Math.min(1.0, (RADIUS - 1) / (current.distance(x, y) + inset));
+        int x = Math.max(bounds.x + inset, Math.min(current.x, bounds.x + bounds.width - 1 - inset));
+        int y = Math.max(bounds.y + inset, Math.min(current.y, bounds.y + bounds.height - 1 - inset));
+        double scale = Math.min(1.0, (maxRadius - 1) / (current.distance(x, y) + inset));
         center = new Point(current.x + (int) Math.round((x - current.x) * scale),
                 current.y + (int) Math.round((y - current.y) * scale));
         radius = Math.floor(inset * scale);

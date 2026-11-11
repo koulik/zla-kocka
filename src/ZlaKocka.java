@@ -7,6 +7,7 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
 import java.awt.RenderingHints;
@@ -40,6 +41,11 @@ public final class ZlaKocka {
 
     private record Limit(String label, Duration duration) {
         @Override public String toString() { return label; }
+    }
+
+    @FunctionalInterface
+    interface PointerFactory {
+        CursorMotion.Pointer create() throws AWTException;
     }
 
     private static final Limit[] LIMITS = {
@@ -150,13 +156,22 @@ public final class ZlaKocka {
         menu.add(open);
         menu.addSeparator();
         menu.add(quit);
-        TrayIcon icon = new TrayIcon(CatIcon.draw(32), NAME, menu);
-        icon.setImageAutoSize(true);
-        icon.addActionListener(event -> SwingUtilities.invokeLater(this::show));
         try {
-            SystemTray.getSystemTray().add(icon);
+            TrayIcon icon = new TrayIcon(CatIcon.draw(32), NAME, menu);
+            icon.setImageAutoSize(true);
+            icon.addActionListener(event -> SwingUtilities.invokeLater(this::show));
+            SystemTray tray = SystemTray.getSystemTray();
+            tray.add(icon);
             trayIcon = icon;
-        } catch (AWTException error) {
+            tray.addPropertyChangeListener("trayIcons", event -> SwingUtilities.invokeLater(() -> {
+                if (trayIcon == icon && !List.of(tray.getTrayIcons()).contains(icon)) {
+                    trayIcon = null;
+                    if (!frame.isVisible()) {
+                        show();
+                    }
+                }
+            }));
+        } catch (AWTException | SecurityException | UnsupportedOperationException error) {
             System.err.println(error.getMessage());
         }
     }
@@ -248,16 +263,29 @@ public final class ZlaKocka {
     }
 
     public static void main(String[] args) {
+        if (System.getProperty("os.name", "").startsWith("Mac")
+                && System.getProperty("apple.awt.UIElement") == null) {
+            // Use the menu bar icon as the app's entry point on macOS.
+            System.setProperty("apple.awt.UIElement", "true");
+        }
+        launch(AwtPointer::new);
+    }
+
+    static void launch(PointerFactory pointerFactory) {
+        if (GraphicsEnvironment.isHeadless()) {
+            System.err.println("Zlá Kočka vyžaduje grafické prostředí.");
+            System.exit(1);
+        }
         SwingUtilities.invokeLater(() -> {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-                WindowsPointer pointer = new WindowsPointer();
-                ZlaKocka app = new ZlaKocka(new CursorMotion(pointer));
+                ZlaKocka app = new ZlaKocka(new CursorMotion(pointerFactory.create()));
                 app.setupTray();
                 app.show();
             } catch (Exception | LinkageError error) {
                 JOptionPane.showMessageDialog(null, "Aplikaci se nepodařilo spustit.\n" + error.getMessage(),
                         NAME, JOptionPane.ERROR_MESSAGE);
+                System.exit(1);
             }
         });
     }

@@ -22,8 +22,8 @@ cd "$(dirname "$0")"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 mkdir -p "$scratch/classes" "$scratch/ZlaKocka/app"
-javac --release 24 -encoding UTF-8 -d "$scratch/classes" src/*.java
-jar --create --file "$scratch/ZlaKocka/app/ZlaKocka.jar" --main-class ZlaKocka -C "$scratch/classes" .
+javac --release 24 -encoding UTF-8 -d "$scratch/classes" src/*.java windows/*.java
+jar --create --file "$scratch/ZlaKocka/app/ZlaKocka.jar" --main-class WindowsMain -C "$scratch/classes" .
 java -Djava.awt.headless=true -cp "$scratch/classes" CatIcon "$scratch/cat.ico"
 cp windows/launcher.rc "$scratch/"
 (

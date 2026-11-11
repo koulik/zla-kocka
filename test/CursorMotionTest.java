@@ -11,14 +11,21 @@ public final class CursorMotionTest {
 
     private static final class FakePointer implements CursorMotion.Pointer {
         Point location;
+        final int radius;
         final List<Point> moves = new ArrayList<>();
 
         FakePointer(Point location) {
+            this(location, CursorMotion.RADIUS);
+        }
+
+        FakePointer(Point location, int radius) {
             this.location = location;
+            this.radius = radius;
         }
 
         @Override public Point position() { return location; }
         @Override public Rectangle boundsAt(Point point) { return SCREEN; }
+        @Override public int radiusInCoordinates() { return radius; }
 
         @Override public boolean move(Point point) {
             require(SCREEN.contains(point), "Spirála opustila monitor.");
@@ -29,18 +36,19 @@ public final class CursorMotionTest {
     }
 
     public static void main(String[] args) {
-        spiralAfterIdle(new Point(-800, 300));
-        spiralAfterIdle(new Point(-1600, -80));
-        spiralAfterIdle(new Point(-1, 819));
+        spiralAfterIdle(new Point(-800, 300), CursorMotion.RADIUS);
+        spiralAfterIdle(new Point(-1600, -80), CursorMotion.RADIUS);
+        spiralAfterIdle(new Point(-1, 819), CursorMotion.RADIUS);
+        spiralAfterIdle(new Point(-1600, -80), 50);
         userInterruptsSpiral();
         timerStopsMidSpiral();
         timerPreservesUserPosition();
         unavailablePointer();
-        System.out.println("7 scénářů prošlo.");
+        System.out.println("8 scénářů prošlo.");
     }
 
-    private static void spiralAfterIdle(Point anchor) {
-        FakePointer pointer = new FakePointer(new Point(-20, 0));
+    private static void spiralAfterIdle(Point anchor, int radius) {
+        FakePointer pointer = new FakePointer(new Point(-20, 0), radius);
         CursorMotion motion = new CursorMotion(pointer);
         motion.start(0, Duration.ZERO);
         require(motion.secondsLeft(0) == -1, "Neomezený režim dostal odpočet.");
@@ -58,7 +66,7 @@ public final class CursorMotionTest {
         motion.tick(end);
         require(pointer.moves.size() > 40, "Spirála nemá dostatek kroků.");
         for (Point point : pointer.moves) {
-            require(point.distance(anchor) <= CursorMotion.RADIUS, "Spirála překročila poloměr.");
+            require(point.distance(anchor) <= radius, "Spirála překročila poloměr.");
         }
         require(pointer.location.equals(anchor), "Kurzor se nevrátil na původní souřadnice.");
         int count = pointer.moves.size();
