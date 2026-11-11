@@ -16,6 +16,7 @@ final class CursorMotion {
     static final long IDLE = Duration.ofSeconds(59).toNanos();
     static final long SPIRAL = Duration.ofMillis(1_350).toNanos();
     static final int RADIUS = 100;
+    private static final int MOVEMENT_TOLERANCE = 4;
 
     private final Pointer pointer;
     private Point expected;
@@ -55,6 +56,10 @@ final class CursorMotion {
         return origin != null;
     }
 
+    double waitingProgress(long now) {
+        return Math.max(0.0, Math.min(1.0, (now - lastMovement) / (double) IDLE));
+    }
+
     long secondsLeft(long now) {
         if (duration == 0) {
             return -1;
@@ -73,7 +78,7 @@ final class CursorMotion {
         }
 
         Point current = pointer.position();
-        if (current == null || !current.equals(expected)) {
+        if (current == null || (spiraling() ? !current.equals(expected) : outsideTolerance(current))) {
             // A person moved the mouse, or Windows is temporarily on another desktop.
             origin = null;
             expected = current;
@@ -93,6 +98,12 @@ final class CursorMotion {
         }
     }
 
+    private boolean outsideTolerance(Point current) {
+        // Compare with the last position that reset the timer so slow movement still counts.
+        return expected == null || Math.abs((long) current.x - expected.x) > MOVEMENT_TOLERANCE
+                || Math.abs((long) current.y - expected.y) > MOVEMENT_TOLERANCE;
+    }
+
     private void beginSpiral(long now, Point current, Rectangle bounds) {
         // Shift the spiral inwards near a screen edge. Each frame stays within
         // the monitor and within the requested distance of the original point.
@@ -108,6 +119,7 @@ final class CursorMotion {
                 current.y + (int) Math.round((y - current.y) * scale));
         radius = Math.floor(inset * scale);
         origin = current;
+        expected = current;
         spiralStarted = now;
     }
 

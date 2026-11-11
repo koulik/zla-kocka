@@ -115,7 +115,7 @@ final class MouseOverlay {
         return overlay;
     }
 
-    private static BufferedImage draw() {
+    static BufferedImage draw() {
         BufferedImage icon = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = icon.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

@@ -12,6 +12,8 @@ import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
@@ -32,11 +34,16 @@ final class CatFace extends JPanel {
     private static final Color HIGHLIGHT = new Color(0x573747);
     private static final String PICKER = "picker";
     private static final String COUNTDOWN = "countdown";
+    private static final BufferedImage STALK_MOUSE = MouseOverlay.draw();
+    private static final int PAW_START = 142;
+    private static final int PAW_END = 228;
 
     private final CardLayout timerLayout = new CardLayout();
     private final JPanel timerCard = new JPanel(timerLayout);
     private final JLabel countdown = new JLabel("", SwingConstants.CENTER);
     private boolean hunting;
+    private boolean pouncing;
+    private int pawX = PAW_START;
     private Point gaze;
 
     CatFace(JFrame frame, JButton toggle, JComboBox<?> limit, Runnable minimize, Runnable close) {
@@ -108,6 +115,15 @@ final class CatFace extends JPanel {
         }
     }
 
+    void setStalkProgress(double progress, boolean pouncing) {
+        int nextX = pouncing ? 247 : PAW_START + (int) Math.round(progress * (PAW_END - PAW_START));
+        if (pawX != nextX || this.pouncing != pouncing) {
+            pawX = nextX;
+            this.pouncing = pouncing;
+            repaint(127, 333, 155, 34);
+        }
+    }
+
     void lookAt(Point screenPointer) {
         Point next = null;
         if (screenPointer != null) {
@@ -123,7 +139,32 @@ final class CatFace extends JPanel {
     @Override protected void paintComponent(Graphics graphics) {
         Graphics2D g = (Graphics2D) graphics.create();
         CatArt.paint(g, hunting, gaze);
+        if (hunting) {
+            paintStalk(g);
+        }
         g.dispose();
+    }
+
+    private void paintStalk(Graphics2D g) {
+        if (pouncing) {
+            g.setColor(new Color(0xFFB754));
+            g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.drawLine(259, 340, 265, 336);
+            g.drawLine(262, 346, 270, 346);
+            g.drawLine(259, 352, 265, 356);
+        } else {
+            g.setColor(BORDER);
+            for (int x = 142; x <= 244; x += 8) {
+                g.fill(new Ellipse2D.Double(x, 348, 2.6, 2.6));
+            }
+            g.drawImage(STALK_MOUSE, 243, 336, this);
+        }
+
+        g.setColor(pouncing ? new Color(0xFFB754) : new Color(0xC38EBC));
+        g.fill(new Ellipse2D.Double(pawX - 8, 345, 12, 11));
+        g.fill(new Ellipse2D.Double(pawX - 2, 339, 5, 6));
+        g.fill(new Ellipse2D.Double(pawX + 4, 343, 5, 6));
+        g.fill(new Ellipse2D.Double(pawX + 4, 350, 5, 6));
     }
 
     private static JButton windowButton(Glyph glyph, String description, Runnable action) {

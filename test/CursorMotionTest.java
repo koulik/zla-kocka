@@ -44,7 +44,9 @@ public final class CursorMotionTest {
         timerStopsMidSpiral();
         timerPreservesUserPosition();
         unavailablePointer();
-        System.out.println("8 scénářů prošlo.");
+        jitterKeepsProgressAndReturnPosition();
+        smallStepsAccumulate();
+        System.out.println("10 scénářů prošlo.");
     }
 
     private static void spiralAfterIdle(Point anchor, int radius) {
@@ -89,7 +91,7 @@ public final class CursorMotionTest {
         motion.tick(CursorMotion.IDLE);
         motion.tick(CursorMotion.IDLE + STEP);
         require(!pointer.moves.isEmpty(), "Spirála se nespustila.");
-        Point userPosition = new Point(-655, 20);
+        Point userPosition = new Point(pointer.location.x + 1, pointer.location.y);
         pointer.location = userPosition;
         long interrupted = CursorMotion.IDLE + 2 * STEP;
         motion.tick(interrupted);
@@ -138,6 +140,44 @@ public final class CursorMotionTest {
         motion.tick(71 * SECOND);
         motion.tick(100 * SECOND);
         require(pointer.moves.isEmpty(), "Pohyb začal hned po obnovení přístupu ke kurzoru.");
+    }
+
+    private static void jitterKeepsProgressAndReturnPosition() {
+        Point start = new Point(-800, 300);
+        FakePointer pointer = new FakePointer(start);
+        CursorMotion motion = new CursorMotion(pointer);
+        motion.start(0, Duration.ZERO);
+        long halfway = CursorMotion.IDLE / 2;
+        pointer.location = new Point(start.x + 4, start.y - 4);
+        motion.tick(halfway);
+        require(motion.waitingProgress(halfway) == 0.5, "Pohyb v toleranci vynuloval průběh čekání.");
+        Point beforeSpiral = new Point(start.x - 4, start.y + 4);
+        pointer.location = beforeSpiral;
+        motion.tick(CursorMotion.IDLE);
+        require(motion.spiraling(), "Pohyb v toleranci odložil spirálu.");
+        motion.tick(CursorMotion.IDLE + STEP);
+        require(!pointer.moves.isEmpty(), "Spirála se po drobném pohybu nevykonala.");
+        long end = CursorMotion.IDLE + CursorMotion.SPIRAL;
+        motion.tick(end);
+        require(pointer.location.equals(beforeSpiral), "Kurzor se nevrátil na místo před spirálou.");
+        require(motion.waitingProgress(end) == 0.0, "Čekání se po spirále neobnovilo.");
+    }
+
+    private static void smallStepsAccumulate() {
+        Point start = new Point(-800, 300);
+        FakePointer pointer = new FakePointer(start);
+        CursorMotion motion = new CursorMotion(pointer);
+        motion.start(0, Duration.ZERO);
+        for (int pixels = 1; pixels <= 5; pixels++) {
+            pointer.location = new Point(start.x, start.y + pixels);
+            motion.tick(pixels * 10 * SECOND);
+        }
+        long lastMovement = 50 * SECOND;
+        require(motion.waitingProgress(lastMovement) == 0.0, "Pomalý pohyb o 5 px nevynuloval čekání.");
+        motion.tick(CursorMotion.IDLE);
+        require(!motion.spiraling(), "Spirála začala v původním termínu.");
+        motion.tick(lastMovement + CursorMotion.IDLE);
+        require(motion.spiraling(), "Spirála nezačala po resetovaném čekání.");
     }
 
     private static void require(boolean condition, String message) {

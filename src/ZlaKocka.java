@@ -265,6 +265,7 @@ public final class ZlaKocka {
     }
 
     private void updateCountdown(long now) {
+        face.setStalkProgress(motion.waitingProgress(now), motion.spiraling());
         long seconds = motion.secondsLeft(now);
         if (seconds == shownSeconds) {
             return;
