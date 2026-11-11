@@ -4,7 +4,7 @@ Malá Java aplikace, která po nečinnosti krátce pohne kurzorem.
 
 ## Spuštění
 
-Přenositelný soubor `ZlaKocka.jar` vyžaduje Javu 17 nebo novější a grafické prostředí s povoleným ovládáním kurzoru.
+Přenositelný soubor `ZlaKocka.jar` vyžaduje Javu 8 nebo novější a grafické prostředí s povoleným ovládáním kurzoru.
 
 ```sh
 java -jar ZlaKocka.jar
@@ -24,7 +24,7 @@ Minimalizací se okno schová do oznamovací oblasti nebo do řádku nabídek na
 
 ## Sestavení ze zdrojů
 
-JAR sestaví skript `build-jar.sh` s JDK 17 nebo novějším.
+JAR sestaví skript `build-jar.sh` s JDK 17 nebo novějším. Výsledný soubor je kompatibilní s Javou 8.
 
 ```bash
 ./build-jar.sh
@@ -41,6 +41,6 @@ Výstupem je složka `dist/ZlaKocka`. Distribuujte ji celou včetně složek `ap
 Logiku odpočtu a pohybu lze ověřit také bez Windows.
 
 ```bash
-javac --release 17 -encoding UTF-8 -d test-build src/*.java test/*.java
+javac --release 8 -encoding UTF-8 -d test-build src/*.java test/*.java
 java -Djava.awt.headless=true -cp test-build CursorMotionTest
 ```

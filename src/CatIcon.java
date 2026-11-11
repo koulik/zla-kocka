@@ -5,10 +5,11 @@ import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import javax.imageio.ImageIO;
 
 final class CatIcon {
@@ -62,7 +63,7 @@ final class CatIcon {
             directory.putInt(png.size()).putInt(directory.capacity() + images.size());
             png.writeTo(images);
         }
-        try (var out = Files.newOutputStream(Path.of(args[0]))) {
+        try (OutputStream out = Files.newOutputStream(Paths.get(args[0]))) {
             out.write(directory.array());
             images.writeTo(out);
         }

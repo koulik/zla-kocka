@@ -16,7 +16,7 @@ import java.awt.TrayIcon;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.time.Duration;
-import java.util.List;
+import java.util.Arrays;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -39,7 +39,15 @@ public final class ZlaKocka {
     private static final Color MUTED = new Color(0x6F5753);
     private static final Color ACCENT = new Color(0x92391F);
 
-    private record Limit(String label, Duration duration) {
+    private static final class Limit {
+        private final String label;
+        private final Duration duration;
+
+        Limit(String label, Duration duration) {
+            this.label = label;
+            this.duration = duration;
+        }
+
         @Override public String toString() { return label; }
     }
 
@@ -69,7 +77,7 @@ public final class ZlaKocka {
 
     ZlaKocka(CursorMotion motion) {
         this.motion = motion;
-        frame.setIconImages(List.of(CatIcon.draw(16), CatIcon.draw(32), CatIcon.draw(64)));
+        frame.setIconImages(Arrays.asList(CatIcon.draw(16), CatIcon.draw(32), CatIcon.draw(64)));
         frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         frame.addWindowListener(new WindowAdapter() {
             @Override public void windowIconified(WindowEvent event) {
@@ -109,7 +117,7 @@ public final class ZlaKocka {
                 motion.stop();
             } else {
                 Limit selected = LIMITS[limit.getSelectedIndex()];
-                motion.start(System.nanoTime(), selected.duration());
+                motion.start(System.nanoTime(), selected.duration);
             }
             refresh();
         });
@@ -164,7 +172,7 @@ public final class ZlaKocka {
             tray.add(icon);
             trayIcon = icon;
             tray.addPropertyChangeListener("trayIcons", event -> SwingUtilities.invokeLater(() -> {
-                if (trayIcon == icon && !List.of(tray.getTrayIcons()).contains(icon)) {
+                if (trayIcon == icon && !Arrays.asList(tray.getTrayIcons()).contains(icon)) {
                     trayIcon = null;
                     if (!frame.isVisible()) {
                         show();
@@ -214,7 +222,7 @@ public final class ZlaKocka {
         if (motion.active()) {
             long seconds = motion.secondsLeft(now);
             text = seconds < 0 ? "Pohyb po 59 s nečinnosti myši"
-                    : "Vypnutí za %d:%02d:%02d".formatted(seconds / 3600, seconds / 60 % 60, seconds % 60);
+                    : String.format("Vypnutí za %d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60);
         }
         if (!text.equals(status.getText())) {
             status.setText(text);

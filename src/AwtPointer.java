@@ -6,6 +6,7 @@ import java.awt.Point;
 import java.awt.PointerInfo;
 import java.awt.Rectangle;
 import java.awt.Robot;
+import java.awt.geom.AffineTransform;
 
 final class AwtPointer implements CursorMotion.Pointer {
     private GraphicsConfiguration configuration;
@@ -44,7 +45,7 @@ final class AwtPointer implements CursorMotion.Pointer {
 
     @Override
     public int radiusInCoordinates() {
-        var transform = configuration.getDefaultTransform();
+        AffineTransform transform = configuration.getDefaultTransform();
         double scale = Math.max(1, Math.max(transform.getScaleX(), transform.getScaleY()));
         return (int) Math.floor(CursorMotion.RADIUS / scale);
     }

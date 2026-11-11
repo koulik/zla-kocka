@@ -8,5 +8,5 @@ cd "$(dirname "$0")"
 
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
-javac --release 17 -encoding UTF-8 -d "$scratch" src/*.java
+javac --release 8 -encoding UTF-8 -d "$scratch" src/*.java
 jar --create --file "$output" --main-class ZlaKocka -C "$scratch" .
