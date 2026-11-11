@@ -1,0 +1,135 @@
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
+public final class CursorMotionTest {
+    private static final long SECOND = Duration.ofSeconds(1).toNanos();
+    private static final long STEP = Duration.ofMillis(18).toNanos();
+    private static final Rectangle SCREEN = new Rectangle(-1600, -80, 1600, 900);
+
+    private static final class FakePointer implements CursorMotion.Pointer {
+        Point location;
+        final List<Point> moves = new ArrayList<>();
+
+        FakePointer(Point location) {
+            this.location = location;
+        }
+
+        @Override public Point position() { return location; }
+        @Override public Rectangle boundsAt(Point point) { return SCREEN; }
+
+        @Override public boolean move(Point point) {
+            require(SCREEN.contains(point), "Spirála opustila monitor.");
+            location = point;
+            moves.add(point);
+            return true;
+        }
+    }
+
+    public static void main(String[] args) {
+        spiralAfterIdle(new Point(-800, 300));
+        spiralAfterIdle(new Point(-1600, -80));
+        spiralAfterIdle(new Point(-1, 819));
+        userInterruptsSpiral();
+        timerStopsMidSpiral();
+        timerPreservesUserPosition();
+        unavailablePointer();
+        System.out.println("7 scénářů prošlo.");
+    }
+
+    private static void spiralAfterIdle(Point anchor) {
+        FakePointer pointer = new FakePointer(new Point(-20, 0));
+        CursorMotion motion = new CursorMotion(pointer);
+        motion.start(0, Duration.ZERO);
+        require(motion.secondsLeft(0) == -1, "Neomezený režim dostal odpočet.");
+        long lastUserMovement = 58 * SECOND;
+        pointer.location = anchor;
+        motion.tick(lastUserMovement);
+        long first = lastUserMovement + CursorMotion.IDLE;
+        motion.tick(first - 1);
+        require(pointer.moves.isEmpty(), "Pohyb začal před uplynutím 59 sekund.");
+        motion.tick(first);
+        long end = first + CursorMotion.SPIRAL;
+        for (long now = first + STEP; now < end; now += STEP) {
+            motion.tick(now);
+        }
+        motion.tick(end);
+        require(pointer.moves.size() > 40, "Spirála nemá dostatek kroků.");
+        for (Point point : pointer.moves) {
+            require(point.distance(anchor) <= CursorMotion.RADIUS, "Spirála překročila poloměr.");
+        }
+        require(pointer.location.equals(anchor), "Kurzor se nevrátil na původní souřadnice.");
+        int count = pointer.moves.size();
+        motion.tick(end + CursorMotion.IDLE - 1);
+        require(pointer.moves.size() == count, "Spirála se opakovala příliš brzy.");
+        motion.tick(end + CursorMotion.IDLE);
+        motion.tick(end + CursorMotion.IDLE + STEP);
+        require(pointer.moves.size() > count, "V neomezeném režimu se spirála neopakovala.");
+        motion.stop();
+        require(pointer.location.equals(anchor), "Ruční vypnutí nedokončilo návrat.");
+    }
+
+    private static void userInterruptsSpiral() {
+        FakePointer pointer = new FakePointer(new Point(-800, 300));
+        CursorMotion motion = new CursorMotion(pointer);
+        motion.start(0, Duration.ZERO);
+        motion.tick(CursorMotion.IDLE);
+        motion.tick(CursorMotion.IDLE + STEP);
+        require(!pointer.moves.isEmpty(), "Spirála se nespustila.");
+        Point userPosition = new Point(-655, 20);
+        pointer.location = userPosition;
+        long interrupted = CursorMotion.IDLE + 2 * STEP;
+        motion.tick(interrupted);
+        int count = pointer.moves.size();
+        motion.tick(interrupted + CursorMotion.IDLE - 1);
+        require(pointer.moves.size() == count && pointer.location.equals(userPosition),
+                "Aplikace po zásahu uživatele pokračovala v pohybu.");
+    }
+
+    private static void timerStopsMidSpiral() {
+        Point anchor = new Point(-800, 300);
+        FakePointer pointer = new FakePointer(anchor);
+        CursorMotion motion = new CursorMotion(pointer);
+        motion.start(0, Duration.ofSeconds(60));
+        require(motion.secondsLeft(0) == 60, "Odpočet má chybnou počáteční hodnotu.");
+        motion.tick(CursorMotion.IDLE);
+        motion.tick(CursorMotion.IDLE + STEP);
+        require(!pointer.location.equals(anchor), "Spirála se nespustila.");
+        motion.tick(60 * SECOND);
+        require(!motion.active() && pointer.location.equals(anchor), "Odpočet nezastavil pohyb s návratem.");
+        int count = pointer.moves.size();
+        motion.tick(200 * SECOND);
+        require(pointer.moves.size() == count, "Pohyb pokračoval po automatickém vypnutí.");
+    }
+
+    private static void timerPreservesUserPosition() {
+        FakePointer pointer = new FakePointer(new Point(-800, 300));
+        CursorMotion motion = new CursorMotion(pointer);
+        motion.start(0, Duration.ofSeconds(60));
+        motion.tick(CursorMotion.IDLE);
+        motion.tick(CursorMotion.IDLE + STEP);
+        Point userPosition = new Point(-210, 20);
+        pointer.location = userPosition;
+        motion.tick(60 * SECOND);
+        require(!motion.active() && pointer.location.equals(userPosition), "Vypnutí přemístilo kurzor uživatele.");
+    }
+
+    private static void unavailablePointer() {
+        FakePointer pointer = new FakePointer(null);
+        CursorMotion motion = new CursorMotion(pointer);
+        motion.start(0, Duration.ZERO);
+        motion.tick(70 * SECOND);
+        pointer.location = new Point(-800, 300);
+        motion.tick(71 * SECOND);
+        motion.tick(100 * SECOND);
+        require(pointer.moves.isEmpty(), "Pohyb začal hned po obnovení přístupu ke kurzoru.");
+    }
+
+    private static void require(boolean condition, String message) {
+        if (!condition) {
+            throw new AssertionError(message);
+        }
+    }
+}

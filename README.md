@@ -1,0 +1,28 @@
+# Zlá Kočka
+
+Malá Java aplikace pro Windows 10 a 11 (x64), která po nečinnosti krátce pohne kurzorem.
+
+1. Rozbalte celý archiv ZIP.
+2. Ve složce `ZlaKocka` spusťte `ZlaKocka.exe`. Java je součástí balíčku.
+3. Volitelně vyberte dobu automatického vypnutí a klikněte na **Zapnout pohyb kurzoru**.
+
+Od zapnutí nebo posledního zaznamenaného pohybu myši aplikace čeká 59 sekund. Pak kurzor opíše krátkou spirálu do vzdálenosti nejvýše 100 px a vrátí se na původní souřadnice. Pokud během animace pohnete myší, spirála se přeruší a aplikace začne znovu měřit nečinnost. Nastavený odpočet se měří od zapnutí funkce. Při volbě **Bez časového omezení** běží funkce až do ručního vypnutí nebo ukončení aplikace.
+
+Minimalizací se okno schová do oznamovací oblasti u hodin. Dvojklik na ikonu kočky nebo nabídka **Zobrazit okno** okno znovu otevře. Křížek v okně a volba **Ukončit** aplikaci ukončí.
+
+## Sestavení ze zdrojů
+
+Skript `build-windows.sh` používá JDK 24 nebo novější, Zig 0.17.1 a rozbalenou distribuci Temurin JRE 25 pro Windows x64. Lze ho spustit například z Bashe na macOS nebo Linuxu.
+
+```bash
+./build-windows.sh /cesta/k/windows-x64-jre ./dist
+```
+
+Výstupem je složka `dist/ZlaKocka`. Distribuujte ji celou včetně složek `app` a `runtime`.
+
+Logiku odpočtu a pohybu lze ověřit také bez Windows.
+
+```bash
+javac --release 24 -encoding UTF-8 -d test-build src/*.java test/*.java
+java -Djava.awt.headless=true -cp test-build CursorMotionTest
+```
