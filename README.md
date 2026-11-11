@@ -20,6 +20,8 @@ Windows 10 a 11 (x64) mají také přenosnou verzi s přibalenou Javou.
 
 Od zapnutí nebo posledního zaznamenaného pohybu myši aplikace čeká 59 sekund. Pak kurzor opíše krátkou spirálu do vzdálenosti nejvýše 100 px a vrátí se na původní souřadnice. Pokud během animace pohnete myší, spirála se přeruší a aplikace začne znovu měřit nečinnost. Nastavený odpočet se měří od zapnutí funkce. Při volbě **Bez časového omezení** běží funkce až do ručního vypnutí nebo ukončení aplikace.
 
+Oči kočky sledují směr ke kurzoru i při vypnutém chytání. Během automatické spirály se vedle kurzoru objeví malá myška.
+
 Okno přesunete tažením kočičí hlavy a minimalizujete tlačítkem **−**. V oznamovací oblasti nebo v řádku nabídek na macOS se oči ikony mění podle toho, zda je chytání zapnuté. Dvojklik na ikonu nebo volba **Zobrazit okno** okno znovu otevře.
 
 Pravým kliknutím na ikonu můžete zapnout chytání bez omezení nebo na 1, 2 či 3 hodiny. Během chytání se v nabídce objeví **Nech myšku na pokoji**. Křížek v okně a volba **Ukončit** aplikaci ukončí.

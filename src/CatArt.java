@@ -2,6 +2,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.GradientPaint;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
@@ -25,7 +26,7 @@ final class CatArt {
         return HEAD;
     }
 
-    static void paint(Graphics2D g, boolean hunting) {
+    static void paint(Graphics2D g, boolean hunting, Point gaze) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setPaint(new GradientPaint(0, 28, new Color(0x202029), 0, 355, new Color(0x09090D)));
         g.fill(HEAD);
@@ -51,6 +52,12 @@ final class CatArt {
             eye.clip(LEFT_EYE);
             eye.setPaint(new GradientPaint(0, 131, eyeTop, 0, 173, eyeBottom));
             eye.fill(LEFT_EYE);
+            if (gaze != null) {
+                double dx = gaze.x - (mirrored ? WIDTH - 125 : 125);
+                double dy = gaze.y - 153;
+                double distance = Math.max(80, Math.hypot(dx, dy));
+                eye.translate((mirrored ? -1 : 1) * 13 * dx / distance, 8 * dy / distance);
+            }
             eye.setColor(hunting ? new Color(0xFFCF74) : new Color(0xC6ACEF));
             eye.fill(LEFT_IRIS);
             eye.setColor(new Color(0x140C17));

@@ -5,6 +5,8 @@ import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.MenuItem;
+import java.awt.MouseInfo;
+import java.awt.PointerInfo;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
@@ -60,6 +62,7 @@ public final class ZlaKocka {
     private final JButton toggle = new CatFace.FaceButton();
     private final JComboBox<Limit> limit = new JComboBox<>(LIMITS);
     private final Timer timer = new Timer(18, event -> poll());
+    private final MouseOverlay mouseOverlay = new MouseOverlay();
     private final CatFace face;
     private final List<Image> restingIcons = windowIcons(false);
     private final List<Image> huntingIcons = windowIcons(true);
@@ -76,6 +79,11 @@ public final class ZlaKocka {
                 if (trayIcon != null) {
                     frame.setVisible(false);
                 }
+                updatePolling();
+            }
+
+            @Override public void windowDeiconified(WindowEvent event) {
+                updatePolling();
             }
 
             @Override public void windowClosing(WindowEvent event) {
@@ -176,12 +184,14 @@ public final class ZlaKocka {
         } else {
             frame.setExtendedState(Frame.ICONIFIED);
         }
+        updatePolling();
     }
 
     private void show() {
         frame.setExtendedState(Frame.NORMAL);
         frame.setVisible(true);
         frame.toFront();
+        updatePolling();
     }
 
     private void start(Duration duration) {
@@ -198,11 +208,24 @@ public final class ZlaKocka {
 
     private void poll() {
         long now = System.nanoTime();
+        boolean wasActive = motion.active();
         motion.tick(now);
         if (motion.active()) {
             updateCountdown(now);
-        } else {
+        } else if (wasActive) {
             refresh();
+        }
+
+        boolean track = faceVisible();
+        boolean spiral = motion.spiraling();
+        PointerInfo pointer = track || spiral ? MouseInfo.getPointerInfo() : null;
+        if (track) {
+            face.lookAt(pointer == null ? null : pointer.getLocation());
+        }
+        if (spiral && pointer != null) {
+            mouseOverlay.showAt(pointer.getLocation(), pointer.getDevice().getDefaultConfiguration());
+        } else {
+            mouseOverlay.hide();
         }
     }
 
@@ -222,6 +245,19 @@ public final class ZlaKocka {
         if (active) {
             shownSeconds = Long.MIN_VALUE;
             updateCountdown(System.nanoTime());
+        } else {
+            mouseOverlay.hide();
+        }
+        updatePolling();
+    }
+
+    private boolean faceVisible() {
+        return frame.isShowing() && (frame.getExtendedState() & Frame.ICONIFIED) == 0;
+    }
+
+    private void updatePolling() {
+        if (motion.active() || faceVisible()) {
+            timer.setDelay(motion.active() ? 18 : 33);
             timer.start();
         } else {
             timer.stop();
@@ -241,6 +277,7 @@ public final class ZlaKocka {
     private void exit() {
         motion.stop();
         timer.stop();
+        mouseOverlay.dispose();
         if (trayIcon != null) {
             SystemTray.getSystemTray().remove(trayIcon);
         }

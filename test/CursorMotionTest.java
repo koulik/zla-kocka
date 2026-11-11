@@ -58,12 +58,15 @@ public final class CursorMotionTest {
         long first = lastUserMovement + CursorMotion.IDLE;
         motion.tick(first - 1);
         require(pointer.moves.isEmpty(), "Pohyb začal před uplynutím 59 sekund.");
+        require(!motion.spiraling(), "Spirála je hlášena během čekání.");
         motion.tick(first);
+        require(motion.spiraling(), "Začátek spirály nebyl ohlášen.");
         long end = first + CursorMotion.SPIRAL;
         for (long now = first + STEP; now < end; now += STEP) {
             motion.tick(now);
         }
         motion.tick(end);
+        require(!motion.spiraling(), "Spirála je stále hlášena po návratu kurzoru.");
         require(pointer.moves.size() > 40, "Spirála nemá dostatek kroků.");
         for (Point point : pointer.moves) {
             require(point.distance(anchor) <= radius, "Spirála překročila poloměr.");
@@ -90,6 +93,7 @@ public final class CursorMotionTest {
         pointer.location = userPosition;
         long interrupted = CursorMotion.IDLE + 2 * STEP;
         motion.tick(interrupted);
+        require(!motion.spiraling(), "Spirála je stále hlášena po zásahu uživatele.");
         int count = pointer.moves.size();
         motion.tick(interrupted + CursorMotion.IDLE - 1);
         require(pointer.moves.size() == count && pointer.location.equals(userPosition),
@@ -106,6 +110,7 @@ public final class CursorMotionTest {
         motion.tick(CursorMotion.IDLE + STEP);
         require(!pointer.location.equals(anchor), "Spirála se nespustila.");
         motion.tick(60 * SECOND);
+        require(!motion.spiraling(), "Spirála je stále hlášena po vypršení odpočtu.");
         require(!motion.active() && pointer.location.equals(anchor), "Odpočet nezastavil pohyb s návratem.");
         int count = pointer.moves.size();
         motion.tick(200 * SECOND);

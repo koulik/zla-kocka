@@ -51,6 +51,10 @@ final class CursorMotion {
         return active;
     }
 
+    boolean spiraling() {
+        return origin != null;
+    }
+
     long secondsLeft(long now) {
         if (duration == 0) {
             return -1;

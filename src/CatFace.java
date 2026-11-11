@@ -37,6 +37,7 @@ final class CatFace extends JPanel {
     private final JPanel timerCard = new JPanel(timerLayout);
     private final JLabel countdown = new JLabel("", SwingConstants.CENTER);
     private boolean hunting;
+    private Point gaze;
 
     CatFace(JFrame frame, JButton toggle, JComboBox<?> limit, Runnable minimize, Runnable close) {
         super(null);
@@ -107,9 +108,21 @@ final class CatFace extends JPanel {
         }
     }
 
+    void lookAt(Point screenPointer) {
+        Point next = null;
+        if (screenPointer != null) {
+            Point location = getLocationOnScreen();
+            next = new Point(screenPointer.x - location.x, screenPointer.y - location.y);
+        }
+        if (!java.util.Objects.equals(gaze, next)) {
+            gaze = next;
+            repaint(46, 112, 316, 73);
+        }
+    }
+
     @Override protected void paintComponent(Graphics graphics) {
         Graphics2D g = (Graphics2D) graphics.create();
-        CatArt.paint(g, hunting);
+        CatArt.paint(g, hunting, gaze);
         g.dispose();
     }
 
