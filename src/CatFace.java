@@ -41,6 +41,7 @@ final class CatFace extends JPanel {
     private final CardLayout timerLayout = new CardLayout();
     private final JPanel timerCard = new JPanel(timerLayout);
     private final JLabel countdown = new JLabel("", SwingConstants.CENTER);
+    private final JLabel timerLabel = new JLabel("Dej myšce milost za", SwingConstants.CENTER);
     private boolean hunting;
     private boolean pouncing;
     private int pawX = PAW_START;
@@ -54,12 +55,11 @@ final class CatFace extends JPanel {
         toggle.setBounds(65, 214, 278, 47);
         add(toggle);
 
-        JLabel label = new JLabel("Dej myšce milost za", SwingConstants.CENTER);
-        label.setFont(label.getFont().deriveFont(Font.BOLD, 13f));
-        label.setForeground(MUTED);
-        label.setLabelFor(limit);
-        label.setBounds(104, 274, 200, 20);
-        add(label);
+        timerLabel.setFont(timerLabel.getFont().deriveFont(Font.BOLD, 13f));
+        timerLabel.setForeground(MUTED);
+        timerLabel.setLabelFor(limit);
+        timerLabel.setBounds(104, 274, 200, 20);
+        add(timerLabel);
 
         stylePicker(limit);
         countdown.setOpaque(true);
@@ -103,9 +103,10 @@ final class CatFace extends JPanel {
         addMouseMotionListener(drag);
     }
 
-    void setHunting(boolean active) {
+    void setMode(boolean active, boolean engaged, String label) {
         hunting = active;
-        timerLayout.show(timerCard, active ? COUNTDOWN : PICKER);
+        timerLabel.setText(label);
+        timerLayout.show(timerCard, engaged ? COUNTDOWN : PICKER);
         repaint();
     }
 

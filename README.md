@@ -26,7 +26,7 @@ Oči kočky sledují směr ke kurzoru i při vypnutém chytání.
 
 Okno přesunete tažením kočičí hlavy a minimalizujete tlačítkem **−**. V oznamovací oblasti nebo v řádku nabídek na macOS se oči ikony mění podle toho, zda je chytání zapnuté. Dvojklik na ikonu nebo volba **Zobrazit okno** okno znovu otevře.
 
-Pravým kliknutím na ikonu můžete zapnout chytání bez omezení nebo na 1, 2 či 3 hodiny. Během chytání se v nabídce objeví **Nech myšku na pokoji**. Křížek v okně a volba **Ukončit** aplikaci ukončí.
+Pravým kliknutím na ikonu můžete zapnout chytání bez omezení, na 1, 2, 3 či 8 hodin nebo v pracovní době. Pracovní režim chytá v pondělí až pátek od 7:00 do 17:30 místního času a mimo tuto dobu čeká na další pracovní den. Stejné volby pro 8 hodin a pracovní dobu jsou v okně. Volba **Nech myšku na pokoji** zastaví chytání i čekání na pracovní dobu. Křížek v okně a volba **Ukončit** aplikaci ukončí.
 
 Tvar a průhlednost okna závisí na grafickém prostředí. Pokud prostředí Javě neposkytuje oznamovací oblast, okno se minimalizuje běžným způsobem.
 

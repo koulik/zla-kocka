@@ -12,7 +12,10 @@ import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import javax.swing.JButton;
@@ -28,6 +31,11 @@ public final class ZlaKocka {
     private static final String NAME = "Zlá Kočka";
     private static final String START = "Chytej myšku!";
     private static final String STOP = "Nech myšku na pokoji!";
+    private static final String WORK_LABEL = "Pracovní doba";
+    private static final LocalTime WORK_START = LocalTime.of(7, 0);
+    private static final LocalTime WORK_END = LocalTime.of(17, 30);
+    private static final Limit EIGHT_HOURS = new Limit("8 hodin", Duration.ofHours(8));
+    private static final Limit WORK_HOURS = new Limit(WORK_LABEL, Duration.ZERO);
 
     private static final class Limit {
         private final String label;
@@ -54,7 +62,8 @@ public final class ZlaKocka {
             new Limit("2 hodiny", Duration.ofHours(2)),
             new Limit("3 hodiny", Duration.ofHours(3)),
             new Limit("4 hodiny", Duration.ofHours(4)),
-            new Limit("8 hodin", Duration.ofHours(8))
+            EIGHT_HOURS,
+            WORK_HOURS
     };
 
     private final CursorMotion motion;
@@ -67,6 +76,7 @@ public final class ZlaKocka {
     private final List<Image> restingIcons = windowIcons(false);
     private final List<Image> huntingIcons = windowIcons(true);
     private TrayIcon trayIcon;
+    private boolean workScheduled;
     private long shownSeconds = Long.MIN_VALUE;
 
     ZlaKocka(CursorMotion motion) {
@@ -91,13 +101,16 @@ public final class ZlaKocka {
             }
         });
         toggle.addActionListener(event -> {
-            if (motion.active()) {
+            if (engaged()) {
                 stop();
+            } else if (limit.getSelectedItem() == WORK_HOURS) {
+                startWorkSchedule();
             } else {
                 start(((Limit) limit.getSelectedItem()).duration);
             }
         });
         limit.getAccessibleContext().setAccessibleDescription("Doba od začátku chytání");
+        limit.setToolTipText("Pracovní doba: pondělí až pátek, 7:00–17:30");
         face = new CatFace(frame, toggle, limit, this::minimize, this::exit);
         frame.getRootPane().setDefaultButton(toggle);
         frame.setContentPane(face);
@@ -166,6 +179,8 @@ public final class ZlaKocka {
             menu.add(menuItem("Chytej myšku hodinu", () -> start(Duration.ofHours(1))));
             menu.add(menuItem("Chytej myšku 2 hodiny", () -> start(Duration.ofHours(2))));
             menu.add(menuItem("Chytej myšku 3 hodiny", () -> start(Duration.ofHours(3))));
+            menu.add(menuItem("Chytej myšku 8 hodin", () -> start(EIGHT_HOURS.duration)));
+            menu.add(menuItem("Chytej myšku v pracovní době", this::startWorkSchedule));
         }
         menu.addSeparator();
         menu.add(menuItem("Ukončit", this::exit));
@@ -195,25 +210,56 @@ public final class ZlaKocka {
     }
 
     private void start(Duration duration) {
-        if (!motion.active()) {
+        if (!engaged()) {
             motion.start(System.nanoTime(), duration);
             refresh();
         }
     }
 
     private void stop() {
+        workScheduled = false;
         motion.stop();
         refresh();
+    }
+
+    private boolean engaged() {
+        return workScheduled || motion.active();
+    }
+
+    private void startWorkSchedule() {
+        if (!engaged()) {
+            workScheduled = true;
+            syncWorkSchedule(LocalDateTime.now(), System.nanoTime());
+            refresh();
+        }
+    }
+
+    static boolean withinWorkHours(LocalDateTime now) {
+        LocalTime time = now.toLocalTime();
+        return now.getDayOfWeek().compareTo(DayOfWeek.FRIDAY) <= 0
+                && !time.isBefore(WORK_START) && time.isBefore(WORK_END);
+    }
+
+    private void syncWorkSchedule(LocalDateTime localNow, long now) {
+        boolean withinHours = withinWorkHours(localNow);
+        if (withinHours && !motion.active()) {
+            motion.start(now, Duration.ZERO);
+        } else if (!withinHours && motion.active()) {
+            motion.stop();
+        }
     }
 
     private void poll() {
         long now = System.nanoTime();
         boolean wasActive = motion.active();
+        if (workScheduled) {
+            syncWorkSchedule(LocalDateTime.now(), now);
+        }
         motion.tick(now);
-        if (motion.active()) {
-            updateCountdown(now);
-        } else if (wasActive) {
+        if (motion.active() != wasActive) {
             refresh();
+        } else if (motion.active()) {
+            updateCountdown(now);
         }
 
         boolean track = faceVisible();
@@ -231,16 +277,20 @@ public final class ZlaKocka {
 
     private void refresh() {
         boolean active = motion.active();
-        toggle.setText(active ? STOP : START);
-        toggle.setSelected(active);
-        limit.setEnabled(!active);
-        face.setHunting(active);
+        boolean engaged = engaged();
+        toggle.setText(engaged ? STOP : START);
+        toggle.setSelected(engaged);
+        limit.setEnabled(!engaged);
+        face.setMode(active, engaged, workScheduled ? WORK_LABEL : "Dej myšce milost za");
+        if (workScheduled) {
+            face.setCountdown(active ? "Do 17:30" : "Čeká · Po–Pá 7:00–17:30");
+        }
         List<Image> icons = active ? huntingIcons : restingIcons;
         frame.setIconImages(icons);
         if (trayIcon != null) {
-            trayIcon.setToolTip(NAME + (active ? " · chytá" : " · odpočívá"));
+            trayIcon.setToolTip(NAME + (active ? " · chytá" : workScheduled ? " · čeká na pracovní dobu" : " · odpočívá"));
             trayIcon.setImage(icons.get(1));
-            trayIcon.setPopupMenu(trayMenu(active));
+            trayIcon.setPopupMenu(trayMenu(engaged));
         }
         if (active) {
             shownSeconds = Long.MIN_VALUE;
@@ -256,8 +306,8 @@ public final class ZlaKocka {
     }
 
     private void updatePolling() {
-        if (motion.active() || faceVisible()) {
-            timer.setDelay(motion.active() ? 18 : 33);
+        if (engaged() || faceVisible()) {
+            timer.setDelay(motion.active() ? 18 : faceVisible() ? 33 : 1000);
             timer.start();
         } else {
             timer.stop();
@@ -266,6 +316,9 @@ public final class ZlaKocka {
 
     private void updateCountdown(long now) {
         face.setStalkProgress(motion.waitingProgress(now), motion.spiraling());
+        if (workScheduled) {
+            return;
+        }
         long seconds = motion.secondsLeft(now);
         if (seconds == shownSeconds) {
             return;
